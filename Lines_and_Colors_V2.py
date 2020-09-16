@@ -88,7 +88,7 @@ def errorCorrection(error): #corrects for close distances near degree 0
         error -= 360.0
     elif error <= -180.0:
         error += 360.0
-    return abs(error)
+    return -error
 
 def getCircle(radius, randomRotation, full, angles, x_centre, y_centre): # draw a cricle - for use in colour wheel and stim locations. if full = False angles must be specified
     if full == True:

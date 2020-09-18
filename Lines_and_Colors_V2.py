@@ -3,13 +3,29 @@ from psychopy.visual import filters
 from psychopy.tools.filetools import fromFile, toFile
 from numpy import sin, cos, tan, log, log10, pi, average, sqrt, std, deg2rad, rad2deg, linspace, asarray
 from numpy.random import random, randint, normal, shuffle, choice, random_integers
-import numpy, time, sys, random, os, pylab
+import numpy, time, sys, random, os, pylab, expclass, pickle
 
 try:
     import win32api
 except:
     print("didn't import win32api")
     pass
+
+try:
+    # uncomment after data.dat not empty
+    file = open('data.dat', 'rb')
+    experiidata = pickle.load(file)
+    print("loading data...")
+
+    # time.sleep(1)
+    # print(".", end = '')
+    # time.sleep(1)
+    # print(".", end = '')
+    # time.sleep(1)
+    # print(".")
+except Exception as e:
+    print(e)
+    experiidata = expclass.Data()
 
 dlg = gui.Dlg(title='Circles and Colors Exp')
 dlg.addText('Participant info')
@@ -21,7 +37,7 @@ dlg.addFixedField('Rundate', data.getDateStr())
 ok_data = dlg.show()
 
 if dlg.OK:
-    print(ok_data)
+    pass
 else:
     core.quit()
 
@@ -30,18 +46,16 @@ dataFile = open(fileName + '.csv', 'w')
 
 dataCategories = 'Subject number,Birthdate,Gender,Rundate,Block number,AttendType,Trial number,StimType,Stim1,Stim2,Stim3,Stim4,Stim5,Stim6,Response1,Error1,ResponseTime1,Response2,Error2,ResponseTime2,Response3,Error3,ResponseTime3,Response4,Error4,ResponseTime4,Response5,Error5,ResponseTime5,Response6,Error6,ResponseTime6\n'
 participantInfo = str(ok_data[0]) + ',' + str(ok_data[1]) + ',' + str(ok_data[2]) + ',' + str(ok_data[3]) + ','
-
+subjectInfo = expclass.Subject(ok_data[0], ok_data[1], ok_data[2], ok_data[3])
+experii = expclass.Experiment(subjectInfo)
+experiidata.add_exp(experii)
 dataFile.write(dataCategories)
 #Stimulus locations
-
-L1= [-124, 0]
-L2= [0, 124]
-L3= [124,0]
-
-StimLocs = [L1, L2, L3]
+StimLocs = [[-124, 0],
+            [0,  124],
+            [124,  0]]
 
 win = visual.Window(fullscr = True, units = 'pix', allowGUI=False, color = [0, 0, 0], colorSpace = 'rgb')
-
 
 myMouse = event.Mouse(win = win)
 
@@ -50,7 +64,6 @@ circle2 = visual.Circle(win, units = 'pix', radius = 30, lineColorSpace = 'rgb25
 circle3 = visual.Circle(win, units = 'pix', radius = 30, lineColorSpace = 'rgb255', fillColorSpace = 'rgb255', lineWidth = 1, edges = 64)
 
 circleList = [circle1, circle2, circle3]
-
 
 imageName = 'circle_with_line.png'
 
@@ -232,7 +245,7 @@ def genStimTypeOrder(single = False):   #generates a list of strings that indica
     print(array)
     return array
 
-def showColor(stim, probeIndexOrder):
+def showColor(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
 
     for (circle, color) in zip(circleList, stim):
@@ -251,7 +264,7 @@ def showColor(stim, probeIndexOrder):
     for i in probeIndexOrder:
         dataFile.write(str(stim[i]) + ',')
 
-def showLine(stim, probeIndexOrder):
+def showLine(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
 
     for (line, angle) in zip(lineList, stim):
@@ -267,18 +280,20 @@ def showLine(stim, probeIndexOrder):
             win.flip()
         elif timing/2 <= frameN < timing:
             win.flip()
+    outputStim = []
     for i in probeIndexOrder:
-        dataFile.write(str(stim[i]) + ',')
+        outputStim.append(stim[i])
+    trialInfo.add_stim(outputStim)
 
 
-def showStim(stim, stimType, probeIndexOrder):   #takes array of 3 integers and string stimtype
+def showStim(stim, stimType, probeIndexOrder, trialInfo):   #takes array of 3 integers and string stimtype
     if stimType == "Color":
-        showColor(stim = stim, probeIndexOrder = probeIndexOrder)
+        showColor(stim, probeIndexOrder, trialInfo)
     elif stimType == "Line":
-        showLine(stim = stim, probeIndexOrder = probeIndexOrder)
+        showLine(stim, probeIndexOrder, trialInfo)
 
 
-def probeColor(stim, probeIndexOrder):
+def probeColor(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = True, newPos = None, win = None)
 
     for circle in circleList:
@@ -326,7 +341,11 @@ def probeColor(stim, probeIndexOrder):
             mouse1, mouse2, mouse3 = myMouse.getPressed()
             for key in event.getKeys():
                 if key in ['escape', 'q']:
+                    file = open('data.dat', 'wb')
+                    pickle.dump(experiidata, file)
+                    file.close()
                     core.quit()
+
             mouse_x, mouse_y = myMouse.getPos()
             distances = sqrt((xcoords - mouse_x)**2 + (ycoords - mouse_y)**2)
             minDist = min(distances)
@@ -352,11 +371,14 @@ def probeColor(stim, probeIndexOrder):
         errorDistance = stim[probeIndex] - ResponseIndex
         errors[index] = errorCorrection(errorDistance)
         index += 1
-    for (response, error, time) in zip(responses, errors, responseTimes):
-        dataFile.write(str(response) + ',' + str(error) + ',' + str(time) + ',')
+
+    trialInfo.add_error(errors)
+    trialInfo.add_response(responses)
+    trialInfo.add_responsetime(responseTimes)
 
 
-def probeLine(stim, probeIndexOrder):
+
+def probeLine(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
 
     index = 0
@@ -400,7 +422,13 @@ def probeLine(stim, probeIndexOrder):
             mouse1, mouse2, mouse3 = myMouse.getPressed()
             for key in event.getKeys():
                 if key in ['escape', 'q']:
-                    core.quit()
+                    try:
+                        file = open('data.dat', 'wb')
+                        pickle.dump(trialInfo, file)
+                        file.close()
+                    except e:
+                        print(e + 'dummy dum dum dum')
+                        core.quit()
             mouse_x, mouse_y = myMouse.getPos()
             distances = sqrt((xcoords - mouse_x)**2 + (ycoords - mouse_y)**2)
             minDist = min(distances)
@@ -428,22 +456,22 @@ def probeLine(stim, probeIndexOrder):
         errors[index] = errorCorrection(errorDistance)
         index += 1
 
-    for (response, error, time) in zip(responses, errors, responseTimes):
-        dataFile.write(str(response) + ',' + str(error) + ',' + str(time) + ',')
+    trialInfo.add_response(responses)
+    trialInfo.add_error(errors)
+    trialInfo.add_responsetime(responseTimes)
 
-
-def probe(stim, stimType, probeIndexOrder):
+def probe(stim, stimType, probeIndexOrder, trialInfo):
 
     response = [0,0,0]
 
     if stimType == "Color":
-        response = probeColor(stim = stim, probeIndexOrder = probeIndexOrder)
+        response = probeColor(stim, probeIndexOrder, trialInfo)
     elif stimType == "Line":
-        response = probeLine(stim = stim, probeIndexOrder = probeIndexOrder)
+        response = probeLine(stim, probeIndexOrder, trialInfo)
 
     return response
 
-def executeTrial(stimType, attendType): #does a single trial
+def executeTrial(stimType, attendType, trialInfo): #does a single trial
                                         #spaghetti code is for formatting .csv file (I'm sure there's a better way)
     print(stimType)
     dataFile.write(stimType + ',')
@@ -453,69 +481,69 @@ def executeTrial(stimType, attendType): #does a single trial
     probeOrder2 = genProbeOrder()
 
     if stimType == 'ColCol':
-        showStim(stim1, 'Color', probeOrder1)
-        showStim(stim2, 'Color', probeOrder2)
+        showStim(stim1, 'Color', probeOrder1, trialInfo)
+        showStim(stim2, 'Color', probeOrder2, trialInfo)
 
         if attendType == 'First':
-            probe(stim1, 'Color', probeOrder1)
+            probe(stim1, 'Color', probeOrder1, trialInfo)
         if attendType == 'Second':
             dataFile.write(',,,')
             dataFile.write(',,,')
             dataFile.write(',,,')
-            probe(stim2, 'Color', probeOrder2)
+            probe(stim2, 'Color', probeOrder2, trialInfo)
         elif attendType == 'Both':
-            probe(stim1, 'Color', probeOrder1)
-            probe(stim2, 'Color', probeOrder2)
+            probe(stim1, 'Color', probeOrder1, trialInfo)
+            probe(stim2, 'Color', probeOrder2, trialInfo)
     elif stimType == 'ColLin':
-        showStim(stim1, 'Color', probeOrder1)
-        showStim(stim2, 'Line', probeOrder2)
+        showStim(stim1, 'Color', probeOrder1, trialInfo)
+        showStim(stim2, 'Line', probeOrder2, trialInfo)
 
         if attendType == 'First':
-            probe(stim1, 'Color', probeOrder1)
+            probe(stim1, 'Color', probeOrder1, trialInfo)
         if attendType == 'Second':
             dataFile.write(',,,')
             dataFile.write(',,,')
             dataFile.write(',,,')
-            probe(stim2, 'Line', probeOrder2)
+            probe(stim2, 'Line', probeOrder2, trialInfo)
         elif attendType == 'Both':
-            probe(stim1, 'Color', probeOrder1)
-            probe(stim2, 'Line', probeOrder2)
+            probe(stim1, 'Color', probeOrder1, trialInfo)
+            probe(stim2, 'Line', probeOrder2, trialInfo)
     elif stimType == 'LinCol':
-        showStim(stim1, 'Line', probeOrder1)
-        showStim(stim2, 'Color', probeOrder2)
+        showStim(stim1, 'Line', probeOrder1, trialInfo)
+        showStim(stim2, 'Color', probeOrder2, trialInfo)
 
         if attendType == 'First':
-            probe(stim1, 'Line', probeOrder1)
+            probe(stim1, 'Line', probeOrder1, trialInfo)
         elif attendType == 'Second':
             dataFile.write(',,,')
             dataFile.write(',,,')
             dataFile.write(',,,')
-            probe(stim2, 'Color', probeOrder2)
+            probe(stim2, 'Color', probeOrder2, trialInfo)
         elif attendType == 'Both':
-            probe(stim1, 'Line', probeOrder1)
-            probe(stim2, 'Color', probeOrder2)
+            probe(stim1, 'Line', probeOrder1, trialInfo)
+            probe(stim2, 'Color', probeOrder2, trialInfo)
     elif stimType == 'LinLin':
-        showStim(stim1, 'Line', probeOrder1)
-        showStim(stim2, 'Line', probeOrder2)
+        showStim(stim1, 'Line', probeOrder1, trialInfo)
+        showStim(stim2, 'Line', probeOrder2, trialInfo)
 
         if attendType == 'First':
-            probe(stim1, 'Line', probeOrder1)
+            probe(stim1, 'Line', probeOrder1, trialInfo)
         elif attendType == 'Second':
             dataFile.write(',,,')
             dataFile.write(',,,')
             dataFile.write(',,,')
-            probe(stim2, 'Line', probeOrder2)
+            probe(stim2, 'Line', probeOrder2, trialInfo)
         elif attendType == 'Both':
-            probe(stim1, 'Line', probeOrder1)
-            probe(stim2, 'Line', probeOrder2)
+            probe(stim1, 'Line', probeOrder1, trialInfo)
+            probe(stim2, 'Line', probeOrder2, trialInfo)
     elif stimType == 'Color':
-        showStim(stim1, 'Color', probeOrder1)
+        showStim(stim1, 'Color', probeOrder1, trialInfo)
         dataFile.write(',,,')
-        probe(stim1, 'Color', probeOrder1)
+        probe(stim1, 'Color', probeOrder1, trialInfo)
     elif stimType == 'Line':
-        showStim(stim1, 'Line', probeOrder1)
+        showStim(stim1, 'Line', probeOrder1, trialInfo)
         dataFile.write(',,,')
-        probe(stim1, 'Line', probeOrder1)
+        probe(stim1, 'Line', probeOrder1, trialInfo)
     dataFile.write('\n')
 
 
@@ -532,7 +560,10 @@ def executeBlock(attendType, blockNumber):
     for stim in stimTypeOrder:
         dataFile.write(participantInfo + str(blockNumber) + ',' + attendType + ',' + str(trialNumber) + ',')
         screenWait('get ready')
-        executeTrial(stim, attendType)
+        trialInfo = expclass.Trial(blockNumber, trialNumber, attendType, stim)
+        experii.add_trial(trialInfo)
+        executeTrial(stim, attendType, trialInfo)
+        print(experii.get_trial(0).get_responsetimelist())
         trialNumber +=1
 
 def main():

@@ -33,6 +33,9 @@ class Experiment:
     def get_trial(self, trialnum):
         return self.__triallist[trialnum]
 
+    def get_triallist(self):
+        return self.__triallist
+
 class Trial:
     """trial object"""
 
@@ -51,6 +54,7 @@ class Trial:
         self.__responselist = []
         self.__errorlist = []
         self.__responsetimelist = []
+        self.__stimorderlist = []
 
     def get_blocknum(self):
         return self.__blocknum
@@ -58,7 +62,7 @@ class Trial:
     def get_trialnum(self):
         return self.__trialnum
 
-    def get_attend_type(self):
+    def get_attendtype(self):
         return self.__attendtype
 
     def get_stimtype(self):
@@ -67,11 +71,17 @@ class Trial:
     def get_stimlist(self):
         return self.__stimlist
 
+    def get_responselist(self):
+        return self.__responselist
+
     def get_errorlist(self):
         return self.__errorlist
 
     def get_responsetimelist(self):
         return self.__responsetimelist
+
+    def get_stimorderlist(self):
+        return self.__stimorderlist
 # orglist[].add_stim([1,2,3])-> orglist[[1,2,3]]: variable leng list [[1,2,3,4,5,6], [1,2,3], ]
     def add_stim(self, stim):  #stim is a list of any length [most likely 3 or 6] that will be added to the stimlist attribute
         self.__stimlist.append(stim)
@@ -84,6 +94,9 @@ class Trial:
 
     def add_responsetime(self, responsetime):
         self.__responsetimelist.append(responsetime)
+
+    def add_stimorder(self, stimorder):
+        self.__stimorderlist.append(stimorder)
 
 class Data:
     def __init__(self):

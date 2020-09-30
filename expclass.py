@@ -18,6 +18,7 @@ class Subject:
     def get_rundate(self):
         return self.__rundate
 
+
 class Experiment:
     """contains subject AND trials"""
     def __init__(self, subject):
@@ -39,7 +40,7 @@ class Experiment:
 class Trial:
     """trial object"""
 
-    def __init__(self, blocknum, trialnum, attendtype, stimtype):
+    def __init__(self, blocknum, trialnum, attendtype, stimtype, practice = 'True'):
         self.__blocknum = blocknum
         self.__trialnum = trialnum
         self.__attendtype = attendtype
@@ -55,6 +56,7 @@ class Trial:
         self.__errorlist = []
         self.__responsetimelist = []
         self.__stimorderlist = []
+        self.__practice = practice
 
     def get_blocknum(self):
         return self.__blocknum
@@ -82,6 +84,10 @@ class Trial:
 
     def get_stimorderlist(self):
         return self.__stimorderlist
+
+    def get_practice(self):
+        return self.__practice
+
 # orglist[].add_stim([1,2,3])-> orglist[[1,2,3]]: variable leng list [[1,2,3,4,5,6], [1,2,3], ]
     def add_stim(self, stim):  #stim is a list of any length [most likely 3 or 6] that will be added to the stimlist attribute
         self.__stimlist.append(stim)
@@ -97,6 +103,9 @@ class Trial:
 
     def add_stimorder(self, stimorder):
         self.__stimorderlist.append(stimorder)
+
+    def set_practice(self, practice):
+        self.__practice = practice
 
 class Data:
     def __init__(self):

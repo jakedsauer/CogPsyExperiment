@@ -3,7 +3,7 @@ from psychopy.visual import filters
 from psychopy.tools.filetools import fromFile, toFile
 from numpy import sin, cos, tan, log, log10, pi, average, sqrt, std, deg2rad, rad2deg, linspace, asarray
 from numpy.random import random, randint, normal, shuffle, choice, random_integers
-import numpy, time, sys, random, os, pylab, expclass, pickle
+import numpy, time, sys, random, os, pylab, expclass, pickle, readit
 
 try:
     import win32api
@@ -12,7 +12,6 @@ except:
     pass
 
 try:
-    # uncomment after data.dat not empty
     file = open('data.dat', 'rb')
     experiidata = pickle.load(file)
     print("loading data...")
@@ -24,14 +23,17 @@ try:
     # time.sleep(1)
     # print(".")
 except Exception as e:
-    print(e)
+    # print(e)
     experiidata = expclass.Data()
 
 dlg = gui.Dlg(title='Circles and Colors Exp')
 dlg.addText('Participant info')
 dlg.addField('Participant Number:')
-dlg.addField('Birthdate:')
-dlg.addField('Gender:', choices=["M", "F", "O"])
+dlg.addText('Birthdate')
+dlg.addField('Day:')
+dlg.addField('Month:')
+dlg.addField('Year:')
+dlg.addField('Gender:', choices=["M", "F", "O", "Prefer not to say"])
 dlg.addText('Experiment Info')
 dlg.addFixedField('Rundate', data.getDateStr())
 ok_data = dlg.show()
@@ -41,15 +43,12 @@ if dlg.OK:
 else:
     core.quit()
 
-fileName = 'Participant_' + ok_data[0] + '_' + ok_data[3]
-dataFile = open(fileName + '.csv', 'w')
+birthdate = ok_data[1] + '/' + ok_data[2] + '/' + ok_data[3]
 
-dataCategories = 'Subject number,Birthdate,Gender,Rundate,Block number,AttendType,Trial number,StimType,Stim1,Stim2,Stim3,Stim4,Stim5,Stim6,Response1,Error1,ResponseTime1,Response2,Error2,ResponseTime2,Response3,Error3,ResponseTime3,Response4,Error4,ResponseTime4,Response5,Error5,ResponseTime5,Response6,Error6,ResponseTime6\n'
-participantInfo = str(ok_data[0]) + ',' + str(ok_data[1]) + ',' + str(ok_data[2]) + ',' + str(ok_data[3]) + ','
-subjectInfo = expclass.Subject(ok_data[0], ok_data[1], ok_data[2], ok_data[3])
+subjectInfo = expclass.Subject(ok_data[0], birthdate, ok_data[4], ok_data[5])
 experii = expclass.Experiment(subjectInfo)
 experiidata.add_exp(experii)
-dataFile.write(dataCategories)
+
 #Stimulus locations
 StimLocs = [[-124, 0],
             [0,  124],
@@ -210,11 +209,11 @@ def genProbeOrder(sets = 1): #sets = numbers of screens of stimuli that will be 
 
     return order
 
-def genStimTypeOrder(single = False):   #generates a list of strings that indicate order and type of stimuli used in trial
+def genStimTypeOrder(single, blockLength):   #generates a list of strings that indicate order and type of stimuli used in trial
                                         #single is a boolean for how many screens will be shown per trial
     array = []
 
-    for i in range(4):                  #controls length of blocks
+    for i in range(blockLength):                  #controls length of blocks       Should be multiple of 4
         array.append(i)
 
     random.shuffle(array)
@@ -245,6 +244,8 @@ def genStimTypeOrder(single = False):   #generates a list of strings that indica
     print(array)
     return array
 
+STIMSHOWTIME = .3
+
 def showColor(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
 
@@ -252,17 +253,23 @@ def showColor(stim, probeIndexOrder, trialInfo):
         circle.setFillColor(labColorsList[color])
         circle.setLineColor(labColorsList[color])
 
-    timing = 400          #determines length stim is shown and length of blank screen
+    # timing = 400          #determines length stim is shown and length of blank screen
+    #
+    # for frameN in range(timing):
+    #     if frameN < timing/2:
+    for circle in circleList:
+        circle.draw()
+    win.flip()
+    time.sleep(STIMSHOWTIME)
+    win.flip()
+    time.sleep(1)
+        # elif timing/2 <= frameN < timing:
+        #     win.flip()
 
-    for frameN in range(timing):
-        if frameN < timing/2:
-            for circle in circleList:
-                circle.draw()
-            win.flip()
-        elif timing/2 <= frameN < timing:
-            win.flip()
+    outputStim = []
     for i in probeIndexOrder:
-        dataFile.write(str(stim[i]) + ',')
+        outputStim.append(stim[i])
+    trialInfo.add_stim(outputStim)
 
 def showLine(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
@@ -271,22 +278,26 @@ def showLine(stim, probeIndexOrder, trialInfo):
         line.ori = angle
         line.color = (255,255,255)
 
-    timing = 400
-
-    for frameN in range(timing):
-        if frameN < timing/2:
-            for line in lineList:
-                line.draw()
-            win.flip()
-        elif timing/2 <= frameN < timing:
-            win.flip()
+    # timing = 400
+    #
+    # for frameN in range(timing):
+    #     if frameN < timing/2:
+    for line in lineList:
+        line.draw()
+    win.flip()
+    time.sleep(STIMSHOWTIME)
+        # elif timing/2 <= frameN < timing:
+    win.flip()
+    time.sleep(1)
     outputStim = []
     for i in probeIndexOrder:
         outputStim.append(stim[i])
     trialInfo.add_stim(outputStim)
+    print(outputStim)
 
 
 def showStim(stim, stimType, probeIndexOrder, trialInfo):   #takes array of 3 integers and string stimtype
+    trialInfo.add_stimorder(probeIndexOrder)
     if stimType == "Color":
         showColor(stim, probeIndexOrder, trialInfo)
     elif stimType == "Line":
@@ -344,6 +355,7 @@ def probeColor(stim, probeIndexOrder, trialInfo):
                     file = open('data.dat', 'wb')
                     pickle.dump(experiidata, file)
                     file.close()
+                    readit.makeExcel()
                     core.quit()
 
             mouse_x, mouse_y = myMouse.getPos()
@@ -422,13 +434,11 @@ def probeLine(stim, probeIndexOrder, trialInfo):
             mouse1, mouse2, mouse3 = myMouse.getPressed()
             for key in event.getKeys():
                 if key in ['escape', 'q']:
-                    try:
-                        file = open('data.dat', 'wb')
-                        pickle.dump(trialInfo, file)
-                        file.close()
-                    except e:
-                        print(e + 'dummy dum dum dum')
-                        core.quit()
+                    file = open('data.dat', 'wb')
+                    pickle.dump(experiidata, file)
+                    file.close()
+                    readit.makeExcel()
+                    core.quit()
             mouse_x, mouse_y = myMouse.getPos()
             distances = sqrt((xcoords - mouse_x)**2 + (ycoords - mouse_y)**2)
             minDist = min(distances)
@@ -472,9 +482,7 @@ def probe(stim, stimType, probeIndexOrder, trialInfo):
     return response
 
 def executeTrial(stimType, attendType, trialInfo): #does a single trial
-                                        #spaghetti code is for formatting .csv file (I'm sure there's a better way)
     print(stimType)
-    dataFile.write(stimType + ',')
     stim1 = genStimuli()
     probeOrder1 = genProbeOrder()
     stim2 = genStimuli()
@@ -483,13 +491,9 @@ def executeTrial(stimType, attendType, trialInfo): #does a single trial
     if stimType == 'ColCol':
         showStim(stim1, 'Color', probeOrder1, trialInfo)
         showStim(stim2, 'Color', probeOrder2, trialInfo)
-
         if attendType == 'First':
             probe(stim1, 'Color', probeOrder1, trialInfo)
         if attendType == 'Second':
-            dataFile.write(',,,')
-            dataFile.write(',,,')
-            dataFile.write(',,,')
             probe(stim2, 'Color', probeOrder2, trialInfo)
         elif attendType == 'Both':
             probe(stim1, 'Color', probeOrder1, trialInfo)
@@ -497,13 +501,9 @@ def executeTrial(stimType, attendType, trialInfo): #does a single trial
     elif stimType == 'ColLin':
         showStim(stim1, 'Color', probeOrder1, trialInfo)
         showStim(stim2, 'Line', probeOrder2, trialInfo)
-
         if attendType == 'First':
             probe(stim1, 'Color', probeOrder1, trialInfo)
         if attendType == 'Second':
-            dataFile.write(',,,')
-            dataFile.write(',,,')
-            dataFile.write(',,,')
             probe(stim2, 'Line', probeOrder2, trialInfo)
         elif attendType == 'Both':
             probe(stim1, 'Color', probeOrder1, trialInfo)
@@ -511,13 +511,9 @@ def executeTrial(stimType, attendType, trialInfo): #does a single trial
     elif stimType == 'LinCol':
         showStim(stim1, 'Line', probeOrder1, trialInfo)
         showStim(stim2, 'Color', probeOrder2, trialInfo)
-
         if attendType == 'First':
             probe(stim1, 'Line', probeOrder1, trialInfo)
         elif attendType == 'Second':
-            dataFile.write(',,,')
-            dataFile.write(',,,')
-            dataFile.write(',,,')
             probe(stim2, 'Color', probeOrder2, trialInfo)
         elif attendType == 'Both':
             probe(stim1, 'Line', probeOrder1, trialInfo)
@@ -525,60 +521,73 @@ def executeTrial(stimType, attendType, trialInfo): #does a single trial
     elif stimType == 'LinLin':
         showStim(stim1, 'Line', probeOrder1, trialInfo)
         showStim(stim2, 'Line', probeOrder2, trialInfo)
-
         if attendType == 'First':
             probe(stim1, 'Line', probeOrder1, trialInfo)
         elif attendType == 'Second':
-            dataFile.write(',,,')
-            dataFile.write(',,,')
-            dataFile.write(',,,')
             probe(stim2, 'Line', probeOrder2, trialInfo)
         elif attendType == 'Both':
             probe(stim1, 'Line', probeOrder1, trialInfo)
             probe(stim2, 'Line', probeOrder2, trialInfo)
     elif stimType == 'Color':
         showStim(stim1, 'Color', probeOrder1, trialInfo)
-        dataFile.write(',,,')
         probe(stim1, 'Color', probeOrder1, trialInfo)
     elif stimType == 'Line':
         showStim(stim1, 'Line', probeOrder1, trialInfo)
-        dataFile.write(',,,')
         probe(stim1, 'Line', probeOrder1, trialInfo)
-    dataFile.write('\n')
 
 
-def executeBlock(attendType, blockNumber):
+def executeBlock(attendType, blockNumber, blockLength, practice):
     single = False
     if attendType == 'Single':
         single = True
 
-    stimTypeOrder = genStimTypeOrder(single)
+    stimTypeOrder = genStimTypeOrder(single, blockLength)
 
     trialNumber = 1
-    screenPrompt("Press any key to start")
+    # screenPrompt("Press any key to start")
 
     for stim in stimTypeOrder:
-        dataFile.write(participantInfo + str(blockNumber) + ',' + attendType + ',' + str(trialNumber) + ',')
         screenWait('get ready')
-        trialInfo = expclass.Trial(blockNumber, trialNumber, attendType, stim)
+        trialInfo = expclass.Trial(blockNumber, trialNumber, attendType, stim, practice)
         experii.add_trial(trialInfo)
         executeTrial(stim, attendType, trialInfo)
-        print(experii.get_trial(0).get_responsetimelist())
         trialNumber +=1
 
 def main():
     blockNumber = 1
+    trialsInBlock = 1   # For practice runs
+    practice = 'True'
+    screenPrompt("PRACTICE\nYou will be tested on one set of stimuli\n(press any key to start)")
+    executeBlock("Single", blockNumber, trialsInBlock, practice)
+    screenPrompt("PRACTICE\nYou will be tested on the first set of stimuli\n(press any key to start)")
+    blockNumber+= 1
+    executeBlock("First", blockNumber, trialsInBlock, practice)
+    screenPrompt("PRACTICE\nYou will be tested on the second set of stimuli\n(press any key to start)")
+    blockNumber+= 1
+    executeBlock("Second", blockNumber, trialsInBlock, practice)
+    screenPrompt("PRACTICE\nYou will be tested on both sets of stimuli\n(press any key to start)")
+    blockNumber+= 1
+    executeBlock("Both", blockNumber, trialsInBlock, practice)
 
-    screenPrompt("You will be tested on one set of stimuli")
-    executeBlock("Single", blockNumber)
-    screenPrompt("You will be tested on the first set of stimuli")
+    screenPrompt("The real experiment will begin now\n(press any key to continue)")
+    practice = 'False'
+    blockNumber = 1
+    trialsInBlock = 1   # For real experiment
+
+    screenPrompt("You will be tested on one set of stimuli\n(press any key to start)")
+    executeBlock("Single", blockNumber, trialsInBlock, practice)
+    screenPrompt("You will be tested on the first set of stimuli\n(press any key to start)")
     blockNumber+= 1
-    executeBlock("First", blockNumber)
-    screenPrompt("You will be tested on the second set of stimuli")
+    executeBlock("First", blockNumber, trialsInBlock, practice)
+    screenPrompt("You will be tested on the second set of stimuli\n(press any key to start)")
     blockNumber+= 1
-    executeBlock("Second", blockNumber)
-    screenPrompt("You will be tested on both sets of stimuli")
+    executeBlock("Second", blockNumber, trialsInBlock, practice)
+    screenPrompt("You will be tested on both sets of stimuli\n(press any key to start)")
     blockNumber+= 1
-    executeBlock("Both", blockNumber)
+    executeBlock("Both", blockNumber, trialsInBlock, practice)
+    file = open('data.dat', 'wb')
+    pickle.dump(experiidata, file)
+    file.close()
+    readit.makeExcel()
 
 main()

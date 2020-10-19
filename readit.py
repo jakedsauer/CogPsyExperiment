@@ -32,19 +32,27 @@ def makeExcel():
 
 
         for j in tri:
+            index = 0
             attendType = j.get_attendtype()
 
             dataFile.write(sub.get_subnumber() + ',' + sub.get_bday() + ',' + sub.get_gender() + ',' + sub.get_rundate() + ',' +
             j.get_practice() + ',' + str(j.get_blocknum()) + ',' + attendType + ',' +
             str(j.get_trialnum()) + ',' + str(j.get_stimtype()) + ',')
-            dataFile.write(str(j.get_stimorderlist()[0]) + ',')
+            stimOrder = str(j.get_stimorderlist()[0]).replace(',', '')
+            print(stimOrder)
+            dataFile.write(stimOrder + ',')
             if attendType != 'Single':
-                dataFile.write(str(j.get_stimorderlist()[1]) + ',')
+                stimOrder = str(j.get_stimorderlist()[1]).replace(',', '')
+                dataFile.write(stimOrder + ',')
             else:
                 dataFile.write('na,')
             for k in j.get_stimlist():
                 for l in k:
                     dataFile.write(str(l) + ',')
+                if j.get_stimtype() == 'Line' or j.get_stimtype() == 'LinLin' or (index == 0 and j.get_stimtype() == 'LinCol') or (index == 1 and j.get_stimtype() == 'ColLin'):
+                    dataFile.write('na,')
+                index+=1
+            index = 0
             if attendType == 'Single':
                 dataFile.write('na,na,na,')
             if attendType == 'Second':
@@ -52,6 +60,10 @@ def makeExcel():
             for k in j.get_responselist():
                 for l in k:
                     dataFile.write(str(l) + ',')
+                if j.get_stimtype() == 'Line' or j.get_stimtype() == 'LinLin' or (index == 0 and j.get_stimtype() == 'LinCol') or (index == 1 and j.get_stimtype() == 'ColLin'):
+                    dataFile.write('na,')
+                index+=1
+            index = 0
             if attendType == 'Single' or attendType == 'First':
                 dataFile.write('na,na,na,')
             if attendType == 'Second':
@@ -59,6 +71,10 @@ def makeExcel():
             for k in j.get_errorlist():
                 for l in k:
                     dataFile.write(str(l) + ',')
+                if j.get_stimtype() == 'Line' or j.get_stimtype() == 'LinLin' or (index == 0 and j.get_stimtype() == 'LinCol') or (index == 1 and j.get_stimtype() == 'ColLin'):
+                    dataFile.write('na,')
+                index+=1
+            index = 0
             if attendType == 'Single' or attendType == 'First':
                 dataFile.write('na,na,na,')
             if attendType == 'Second':
@@ -66,10 +82,13 @@ def makeExcel():
             for k in j.get_responsetimelist():
                 for l in k:
                     dataFile.write(str(l) + ',')
+                if j.get_stimtype() == 'Line' or j.get_stimtype() == 'LinLin' or (index == 0 and j.get_stimtype() == 'LinCol') or (index == 1 and j.get_stimtype() == 'ColLin'):
+                    dataFile.write('na,')
+                index+=1
+            index = 0
             if attendType == 'Single' or attendType == 'First':
                 dataFile.write('na,na,na,')
             dataFile.write('\n')
-
 
 def main():
     makeExcel()

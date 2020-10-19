@@ -54,6 +54,9 @@ StimLocs = [[-124, 0],
             [0,  124],
             [124,  0]]
 
+KEY_TERMINATE = "escape"
+KEY_CONTINUE = "space"
+
 win = visual.Window(fullscr = True, units = 'pix', allowGUI=False, color = [0, 0, 0], colorSpace = 'rgb')
 
 myMouse = event.Mouse(win = win)
@@ -68,15 +71,16 @@ imageName = 'circle_with_line.png'
 
 line1 = visual.ImageStim(win, image =imageName, colorSpace = 'rgb255')
 line2 = visual.ImageStim(win, image=imageName, colorSpace = 'rgb255')
-line3 = visual.ImageStim(win, image=imageName, colorSpace = 'rgb255')
+# line3 = visual.ImageStim(win, image=imageName, colorSpace = 'rgb255')
 
-lineList = [line1, line2, line3]
+lineList = [line1, line2]
 
 RespIndic = visual.GratingStim(win, tex = 'none', mask = 'none',  size = [25,75],colorSpace = 'rgb255')
 
-for (circle, line, loc) in zip(circleList, lineList, StimLocs):
+for (circle, loc) in zip(circleList, StimLocs):
     circle.setPos(loc)
-    line.setPos(loc)
+for (line, i) in zip(lineList, [0,2]):
+    line.setPos(StimLocs[i])
 
 
 ring = visual.ElementArrayStim(win, units = 'pix', fieldPos = [0,0], fieldSize = [500,500], fieldShape = 'circle', nElements = 360,
@@ -181,9 +185,16 @@ def screenPrompt(string = 'Trial Starting'):   #displays string on screen
     instruction = visual.TextStim(win, text = string,color = [-1,-1,-1], colorSpace = 'rgb', height = 60, wrapWidth = 800)
     instruction.draw()
     win.flip()
-    event.waitKeys()
+    time.sleep(1)
+    key = event.waitKeys(keyList = [KEY_CONTINUE, KEY_TERMINATE])
     win.flip()
-    core.wait(2)
+    if key[0] == KEY_TERMINATE:
+        file = open('data.dat', 'wb')
+        pickle.dump(experiidata, file)
+        file.close()
+        readit.makeExcel()
+        core.quit()
+    time.sleep(2)
 
 def screenWait(string = 'Trial Starting', timing = 2):      #displays string on screen
                                                             #if string is empty, displays 'Trial Starting'
@@ -191,7 +202,7 @@ def screenWait(string = 'Trial Starting', timing = 2):      #displays string on 
     instruction = visual.TextStim(win, text = string,color = [-1,-1,-1], colorSpace = 'rgb', height = 60, wrapWidth = 800)
     instruction.draw()
     win.flip()
-    core.wait(timing)
+    time.sleep(timing)
 
 def genStimuli(sets = 1):   #sets = number of screens of stimuli needed
                             #generates an array of random integers [0, 359] 3 at a time
@@ -199,7 +210,7 @@ def genStimuli(sets = 1):   #sets = number of screens of stimuli needed
     return stim
 
 def genProbeOrder(sets = 1): #sets = numbers of screens of stimuli that will be displayed
-    order = numpy.arange(3)
+    order = [0,1,2]
     random.shuffle(order)
     if(sets != 1):
         for i in range(sets):
@@ -274,19 +285,17 @@ def showColor(stim, probeIndexOrder, trialInfo):
 def showLine(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
 
+    probeIndexOrder.remove(2)
+
     for (line, angle) in zip(lineList, stim):
         line.ori = angle
         line.color = (255,255,255)
 
-    # timing = 400
-    #
-    # for frameN in range(timing):
-    #     if frameN < timing/2:
     for line in lineList:
         line.draw()
     win.flip()
     time.sleep(STIMSHOWTIME)
-        # elif timing/2 <= frameN < timing:
+
     win.flip()
     time.sleep(1)
     outputStim = []
@@ -394,10 +403,11 @@ def probeLine(stim, probeIndexOrder, trialInfo):
     event.Mouse(visible = False, newPos = None, win = None)
 
     index = 0
+    print(probeIndexOrder)
 
-    responseTimes = [0,0,0]
-    responses = [0,0,0]
-    errors = [0,0,0]
+    responseTimes = [0,0]
+    responses = [0,0]
+    errors = [0,0]
 
     for line in lineList:
         line.ori = random.choice(range(360))
@@ -553,36 +563,66 @@ def executeBlock(attendType, blockNumber, blockLength, practice):
         executeTrial(stim, attendType, trialInfo)
         trialNumber +=1
 
+def executeExample():
+    INST = ["WELCOME TO THE MEMORY GAME\n\nWe appreciate your participation. \n\nIn this game, you'll be asked to remember memory items that can be either colored disks or line angles in a circle. They will look like this:\n\n(pay close attention!)",
+                "It's important to stay focused on the computer screen throughout the game because as you just saw, shapes will appear and disappear really fast and if you look away, you'll miss them. \n\nResearcher press the designated key to continue",
+                "You'll be told to remember either one or two groups of items:\n\t-Remember the one memory set you're shown\n\t-Remember the first memory set of two shown\n\t-Remember the second memory set of two shown\n\t-Remember both memory sets of two shown\n\nResearcher press the designated key to continue",
+                "After the memory items, a ring of colors or a black ring will appear. This is how you will indicate your response.\nTo select your response for the highlighted item, move your curser to the ring and select the color, or angle of the item that was there \n\nResearcher press the designated key to continue",
+                "Lets try it out, select whatever responses you'd like \n\nResearcher press the designated key to continue",
+                "As you can see, the order that you are asked to give your response, is not always left to right. Give your answers for the memory item you remember being in that location.\n\nResearcher press the designated key to continue",
+                "Please pay attention to the instructions before you begin each part so you know WHAT to remember \nthe 1st group, the 2nd group, or both groups. \n\nResearcher press the designated key to continue"]
+
+    trialExample = expclass.Trial(0, 0, 'Single' ,'Color')
+    index = 0
+    for prompt in INST:
+        screenPrompt(prompt)
+        if index == 0:
+            screenWait("get ready")
+            trialExample = expclass.Trial(0, 0, 'Single' ,'Color')
+            showStim(genStimuli(), 'Color', [0,1,2], trialExample)
+            showStim(genStimuli(), 'Line', [0,1,2], trialExample)
+        if index == len(INST)-3:
+            probe([0,0,0], 'Color', [1,0,2], trialExample)
+            probe([0,0,0], 'Line', [0,1], trialExample)
+        index+=1
+
+
+
+
 def main():
+    executeExample()
+    # core.quit()
+    screenPrompt("Now we will start a practice round.\n\nPress space to continue")
     blockNumber = 1
-    trialsInBlock = 1   # For practice runs
+    trialsInBlock = 2   # For practice runs
     practice = 'True'
-    screenPrompt("PRACTICE\nYou will be tested on one set of stimuli\n(press any key to start)")
+    screenPrompt("PRACTICE\nYou will be tested on one set of memory items\n\nPress space to start")
     executeBlock("Single", blockNumber, trialsInBlock, practice)
-    screenPrompt("PRACTICE\nYou will be tested on the first set of stimuli\n(press any key to start)")
+    screenPrompt("You will be shown two sets of memory items")
+    screenPrompt("PRACTICE\nYou will be tested on the first set of memeory items\n(press space to start)")
     blockNumber+= 1
     executeBlock("First", blockNumber, trialsInBlock, practice)
-    screenPrompt("PRACTICE\nYou will be tested on the second set of stimuli\n(press any key to start)")
+    screenPrompt("PRACTICE\nYou will be tested on the second set of memory items\n(press space to start)")
     blockNumber+= 1
     executeBlock("Second", blockNumber, trialsInBlock, practice)
-    screenPrompt("PRACTICE\nYou will be tested on both sets of stimuli\n(press any key to start)")
+    screenPrompt("PRACTICE\nYou will be tested on both sets of memory items\n(press space to start)")
     blockNumber+= 1
     executeBlock("Both", blockNumber, trialsInBlock, practice)
 
-    screenPrompt("The real experiment will begin now\n(press any key to continue)")
+    screenPrompt("The real experiment will begin now\n(press space to continue)")
     practice = 'False'
     blockNumber = 1
     trialsInBlock = 1   # For real experiment
 
-    screenPrompt("You will be tested on one set of stimuli\n(press any key to start)")
+    screenPrompt("You will be tested on one set of memory items\n(press sapce to start)")
     executeBlock("Single", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be tested on the first set of stimuli\n(press any key to start)")
+    screenPrompt("You will be tested on the first set of memory items\n(press space to start)")
     blockNumber+= 1
     executeBlock("First", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be tested on the second set of stimuli\n(press any key to start)")
+    screenPrompt("You will be tested on the second set of memory items\n(press space to start)")
     blockNumber+= 1
     executeBlock("Second", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be tested on both sets of stimuli\n(press any key to start)")
+    screenPrompt("You will be tested on both sets of memory items\n(press space to start)")
     blockNumber+= 1
     executeBlock("Both", blockNumber, trialsInBlock, practice)
     file = open('data.dat', 'wb')

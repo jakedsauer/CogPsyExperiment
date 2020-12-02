@@ -26,14 +26,47 @@ except Exception as e:
     # print(e)
     experiidata = expclass.Data()
 
+consent = gui.Dlg(title='Consent Acknowledgement')
+consent.addText('I have read the Consent Form and I am okay with participating in the study')
+consent.addField(choices=['DO NOT ACCEPT', 'ACCEPT'])
+consentForm = consent.show()
+if consent.OK and consentForm[0] == 'ACCEPT':
+    pass
+else:
+    core.quit()
+
+demo = gui.Dlg(title='Demographics')
+demo.addField('Age:')
+demo.addText('Birthdate')
+demo.addField('Day:')
+demo.addField('Month:')
+demo.addField('Year:')
+demo.addField('Gender:', choices=['M', 'F', 'O', 'Prefer not to say'])
+demo.addField('Class:', choices=['Freshman', 'Sophomore', 'Junior', 'Senior', 'Other'])
+demo.addField('Ethnicity:', choices=['Hispanic or Latino', 'Not Hispanic or Latino', 'Unknown'])
+demo.addField('Race:', choices=['American Indian / Alaska Native', 'Asian', 'Black or African American', 'More Than One Race', 'Native Hawaiian/Other Pacific Islander', 'White or European', 'Unknown', 'Other'])
+demo.addField('First Language Learned?')
+demo.addField('Are you fluent in English?', choices=['Yes', 'No'])
+demo.addField('Have you taken any medication that could\naffect your cognitive abilities?', choices=['Yes', 'No'])
+demo.addField('If you answered \"Yes\", please explain HOW\nthe medication may affect your participation')
+demo.addField('Do you currently have any hearing problems?', choices=['Yes', 'No'])
+demo.addText('Vision')
+demo.addField('20/20', choices=['Yes', 'No'])
+demo.addField('Glasses/Contacts', choices=['Yes', 'No'])
+demo.addField('Color Blind', choices=['Yes', 'No'])
+demo.addField('If you wear glasses or contacts,\nare you wearing them today?')
+demoForm = demo.show()
+
+if demo.OK:
+    pass
+else:
+    core.quit()
+med = 'Taken medication - ' + demoForm[11] + '|Medication effects - ' + demoForm[12]
+vision = demoForm[13] + ',' + demoForm[14] + ',' + demoForm[15] + ',' + demoForm[16]
+
 dlg = gui.Dlg(title='Circles and Colors Exp')
 dlg.addText('Participant info')
 dlg.addField('Participant Number:')
-dlg.addText('Birthdate')
-dlg.addField('Day:')
-dlg.addField('Month:')
-dlg.addField('Year:')
-dlg.addField('Gender:', choices=["M", "F", "O", "Prefer not to say"])
 dlg.addText('Experiment Info')
 dlg.addFixedField('Rundate', data.getDateStr())
 ok_data = dlg.show()
@@ -43,11 +76,13 @@ if dlg.OK:
 else:
     core.quit()
 
-birthdate = ok_data[1] + '/' + ok_data[2] + '/' + ok_data[3]
+birthdate = demoForm[1] + '/' + demoForm[2] + '/' + demoForm[3]
 
-subjectInfo = expclass.Subject(ok_data[0], birthdate, ok_data[4], ok_data[5])
+demoInfo = expclass.Demographics(ok_data[0], demoForm[0], birthdate, demoForm[4], demoForm[5], demoForm[6], demoForm[7], demoForm[8], demoForm[9], med, demoForm[12], vision)
+subjectInfo = expclass.Subject(ok_data[0], birthdate, demoForm[4], ok_data[1])
 experii = expclass.Experiment(subjectInfo)
 experiidata.add_exp(experii)
+experiidata.add_demo(demoInfo)
 
 #Stimulus locations
 StimLocs = [[-124, 0],
@@ -179,10 +214,12 @@ def LAB2RGB(L, a, b, radius): # creates list of 360 colors for ring and stimuli 
 
 labColorsList = LAB2RGB(L = 50, a = 20, b = 20, radius = 60)
 
-def screenPrompt(string = 'Trial Starting'):   #displays string on screen
+def screenPrompt(string = 'Trial Starting', shape = None):   #displays string on screen
                             #if string is empty, displays 'Trial Starting'
     event.Mouse(visible=False, newPos=[0,0], win=None)
-    instruction = visual.TextStim(win, text = string,color = [-1,-1,-1], colorSpace = 'rgb', height = 60, wrapWidth = 800)
+    if(shape != None):
+        shape.draw()
+    instruction = visual.TextStim(win, text = string, color = [-1,-1,-1], colorSpace = 'rgb', height = 60, wrapWidth = 800)
     instruction.draw()
     win.flip()
     time.sleep(1)
@@ -377,7 +414,7 @@ def probeColor(stim, probeIndexOrder, trialInfo):
 
             RespIndic.setPos(resIndLocs[minDistIndex])
             RespIndic.setOri(minDistIndex+randomRot)
-            RespIndic.setColor(updateCol)
+            RespIndic.setColor(updateCol, 'rgb255')
             event.clearEvents()
             ring.draw()
             RespIndic.draw()
@@ -419,6 +456,7 @@ def probeLine(stim, probeIndexOrder, trialInfo):
 
         cirLocs = getCircle(radius = 350, randomRotation = 0, full = True, angles = 0, x_centre = 0, y_centre = 0) # get locations for 360 circles to make up ring
         resIndLocs = getCircle(radius = 320, randomRotation = 0, full = True, angles = 0, x_centre = 0, y_centre = 0) # get locations for wheel indicator
+        RespIndic.setColor('yellow')
         ring.setColors(setRingBlack()) # set ring colours
         ring.setXYs(cirLocs) # set locations
         xcoords = [x[0] for x in cirLocs]
@@ -458,7 +496,6 @@ def probeLine(stim, probeIndexOrder, trialInfo):
 
             RespIndic.setPos(resIndLocs[minDistIndex])
             RespIndic.setOri(minDistIndex)
-            RespIndic.setColor([0,0,0])
             event.clearEvents()
             ring.draw()
             RespIndic.draw()
@@ -594,40 +631,51 @@ def main():
     # core.quit()
     screenPrompt("Now we will start a practice round.\n\nPress space to continue")
     blockNumber = 1
-    trialsInBlock = 2   # For practice runs
+    trialsInBlock = 4   # For practice runs
     practice = 'True'
-    screenPrompt("PRACTICE\nYou will be tested on one set of memory items\n\nPress space to start")
+
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (240,60), size = (230,100))
+    screenPrompt("PRACTICE\nYou will be tested on one set of memory items\n\nPress space to start", shape)
     executeBlock("Single", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be shown two sets of memory items")
-    screenPrompt("PRACTICE\nYou will be tested on the first set of memeory items\n(press space to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (160,30), size = (210,110))
+    screenPrompt("You will be shown two sets of memory items", shape)
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (345,35), size = (230,110))
+    screenPrompt("PRACTICE\nYou will be tested on the first set of memeory items\n(press space to start)", shape)
     blockNumber+= 1
     executeBlock("First", blockNumber, trialsInBlock, practice)
-    screenPrompt("PRACTICE\nYou will be tested on the second set of memory items\n(press space to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (-280,-35), size = (420,110))
+    screenPrompt("PRACTICE\nYou will be tested on the second set of memory items\n(press space to start)", shape)
     blockNumber+= 1
     executeBlock("Second", blockNumber, trialsInBlock, practice)
-    screenPrompt("PRACTICE\nYou will be tested on both sets of memory items\n(press space to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (280,33), size = (250,100))
+    screenPrompt("PRACTICE\nYou will be tested on both sets of memory items\n(press space to start)", shape)
     blockNumber+= 1
     executeBlock("Both", blockNumber, trialsInBlock, practice)
 
     screenPrompt("The real experiment will begin now\n(press space to continue)")
     practice = 'False'
     blockNumber = 1
-    trialsInBlock = 1   # For real experiment
+    trialsInBlock = 10   # For real experiment // should be 40
 
-    screenPrompt("You will be tested on one set of memory items\n(press sapce to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (240,60), size = (230,100))
+    screenPrompt("You will be tested on one set of memory items\n(press space to start)", shape)
     executeBlock("Single", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be tested on the first set of memory items\n(press space to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (345,65), size = (230,110))
+    screenPrompt("You will be tested on the first set of memory items\n(press space to start)", shape)
     blockNumber+= 1
     executeBlock("First", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be tested on the second set of memory items\n(press space to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (-280,0), size = (420,110))
+    screenPrompt("You will be tested on the second set of memory items\n(press space to start)",shape)
     blockNumber+= 1
     executeBlock("Second", blockNumber, trialsInBlock, practice)
-    screenPrompt("You will be tested on both sets of memory items\n(press space to start)")
+    shape = visual.Rect(win, lineWidth = 0, fillColor = 'yellow', fillColorSpace = 'rgb255', pos = (280,65), size = (250,100))
+    screenPrompt("You will be tested on both sets of memory items\n(press space to start)", shape)
     blockNumber+= 1
     executeBlock("Both", blockNumber, trialsInBlock, practice)
     file = open('data.dat', 'wb')
     pickle.dump(experiidata, file)
     file.close()
     readit.makeExcel()
+    screenPrompt("You're all done!")
 
 main()

@@ -5,6 +5,7 @@ class Subject:
         self.__bday = bday
         self.__gender = gender
         self.__rundate = rundate
+        self.__demodata = None
 
     def get_subnumber(self):
         return self.__subnumber
@@ -18,6 +19,61 @@ class Subject:
     def get_rundate(self):
         return self.__rundate
 
+    def set_demo(self, demo):
+        self.__demodata = demo
+
+
+
+class Demographics:
+    def __init__(self, subnumber, age, bday, gender, year, ethnicity, race, flang, fluent, med, hearing, vision):
+        self.__subnumber = subnumber
+        self.__age = age
+        self.__bday = bday
+        self.__gender = gender
+        self.__class = year
+        self.__ethnicity = ethnicity
+        self.__race = race
+        self.__flang = flang
+        self.__fluent = fluent
+        self.__med = med
+        self.__hearing = hearing
+        self.__vision = vision
+
+    def get_subnumber(self):
+        return self.__subnumber
+
+    def get_age(self):
+        return self.__age
+
+    def get_bday(self):
+        return self.__bday
+
+    def get_gender(self):
+        return self.__gender
+
+    def get_class(self):
+        return self.__class
+
+    def get_ethnicity(self):
+        return self.__ethnicity
+
+    def get_race(self):
+        return self.__race
+
+    def get_flang(self):
+        return self.__flang
+
+    def get_fluent(self):
+        return self.__fluent
+
+    def get_med(self):
+        return self.__med
+
+    def get_hearing(self):
+        return self.__hearing
+
+    def get_vision(self):
+        return self.__vision
 
 class Experiment:
     """contains subject AND trials"""
@@ -110,9 +166,16 @@ class Trial:
 class Data:
     def __init__(self):
         self.__explist =[]
+        self.__demolist = []
 
     def add_exp(self, exp):
         self.__explist.append(exp)
 
     def get_explist(self):
         return self.__explist
+
+    def add_demo(self, demo):
+        self.__demolist.append(demo)
+
+    def get_demolist(self):
+        return self.__demolist

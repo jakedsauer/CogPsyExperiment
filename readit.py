@@ -1,5 +1,6 @@
 import pickle, os.path
 import expclass
+from psychopy import data
 
 def makeExcel():
     with open("data.dat", "rb") as f:
@@ -90,7 +91,35 @@ def makeExcel():
                 dataFile.write('na,na,na,')
             dataFile.write('\n')
 
+def makeDemoExcel():
+    with open("data.dat", "rb") as f:
+        experiidata = pickle.load(f)
+
+        dl = experiidata.get_demolist()
+
+        fileName = 'Demographics_' + data.getDateStr()
+
+        dataFile = open(fileName + '.csv', 'w')
+
+        demoCategories = 'Subject Number, Age, Birthdate,\
+        Gender, Class, Ethnicity, Race, First Language,\
+        Fluent in English, Medication, Hearing problem,\
+        20/20,Glasses/Contacts,Colorblind,Wearing\n'
+
+        dataFile.write(demoCategories)
+
+
+        for i in dl:
+            dataFile.write(str(i.get_subnumber()) + ',' +
+            str(i.get_age()) + ',' + str(i.get_bday()) + ',' +
+            str(i.get_gender()) + ',' + str(i.get_class()) + ',' +
+            str(i.get_ethnicity()) + ',' + str(i.get_race()) + ',' +
+            str(i.get_flang()) + ',' + str(i.get_fluent()) + ',' +
+            str(i.get_med()) + ',' + str(i.get_hearing()) + ',' +
+            str(i.get_vision()) + '\n')
+
 def main():
     makeExcel()
 
-main()
+# main()
+# makeDemoExcel()
